@@ -1,0 +1,63 @@
+import os # To interact with the device and the environment
+import streamlit as st # For the UI
+from groq import Groq # For the Brain
+from dotenv import load_dotenv # To hide sensitive data (Passwords)
+
+# 1. Load Keys and Passwords (Local Environment Variables)
+load_dotenv()
+
+# 2. Init Client
+client = Groq()
+
+# 3. Page Configuration
+st.set_page_config(
+    page_title = "Last Minute Chatbot",
+    page_icon = "🤖",
+)
+
+# 4. Initialize History
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Because Streamlit reruns the script constantly, normal variables get wiped. 
+# st.session_state is a persistent dictionary that survives the reruns. [static]
+
+# 5. Display History
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# 6. User Input
+if prompt := st.chat_input("Hi!"):
+
+    # save to memory
+    st.session_state.messages.append(
+        {"role": "user", "content": prompt}
+    )
+
+    # show immediately
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    # 7. Generate Response
+    try:
+        completion = client.chat.completions.create(
+            model = "llama-3.1-8b-instant",
+            messages = st.session_state.messages,
+            temperature = 0.9,
+            max_tokens = 1024,
+        )
+        response =  completion.choices[0].message.content
+
+        with st.chat_message("assistant"):
+            st.markdown(response)
+
+        st.session_state.messages.append(
+            {"role": "assistant", "content": response}
+        )
+
+    except Exception as e:
+        st.error(f"Error: {e}")
+
+
+    
